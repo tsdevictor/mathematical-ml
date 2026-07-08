@@ -1,58 +1,96 @@
 import numpy as np
 
 
-def qr_decomposition(A: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Compute the QR decomposition of A using classical Gram-Schmidt."""
-    A = A.astype(float)
-    m, n = A.shape
-    Q = np.zeros((m, n))
-    R = np.zeros((n, n))
+def householder_qr(A: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Compute the QR decomposition using Householder reflections.
 
-    for j in range(n):
-        v = A[:, j].copy()
+    Adapted from the Householder QR implementation in the original coursework.
+    """
+    A = np.asarray(A, dtype=float)
+    n, p = A.shape
 
-        for i in range(j):
-            R[i, j] = Q[:, i] @ A[:, j]
-            v -= R[i, j] * Q[:, i]
+    Q = np.eye(n)
+    R = A.copy()
 
-        R[j, j] = np.linalg.norm(v)
+    for k in range(p):
+        x = R[k:, k]
 
-        if np.isclose(R[j, j], 0):
-            raise ValueError("matrix has linearly dependent columns")
+        if np.allclose(x, 0):
+            continue
 
-        Q[:, j] = v / R[j, j]
+        e1 = np.zeros_like(x)
+        e1[0] = 1.0
+
+        sign = 1.0 if x[0] >= 0 else -1.0
+        v = x + sign * np.linalg.norm(x) * e1
+        v_norm = np.linalg.norm(v)
+
+        if np.isclose(v_norm, 0):
+            continue
+
+        v = v / v_norm
+
+        R[k:, k:] -= 2 * np.outer(v, v @ R[k:, k:])
+        Q[:, k:] -= 2 * Q[:, k:] @ np.outer(v, v)
 
     return Q, R
 
 
-def power_iteration(
-    A: np.ndarray,
-    num_iters: int = 1000,
-    tol: float = 1e-10,
-    seed: int = 0,
-) -> tuple[float, np.ndarray]:
-    """Estimate the dominant eigenvalue/eigenvector of a square matrix."""
-    if A.shape[0] != A.shape[1]:
-        raise ValueError("power iteration requires a square matrix")
+def gram_schmidt(X: np.ndarray) -> np.ndarray:
+    """Orthonormalize the columns of X using modified Gram-Schmidt."""
+    X = np.asarray(X, dtype=float)
+    Q = np.zeros_like(X, dtype=float)
 
-    rng = np.random.default_rng(seed)
-    v = rng.normal(size=A.shape[0])
-    v = v / np.linalg.norm(v)
+    for i in range(X.shape[1]):
+        v = X[:, i].copy()
 
-    for _ in range(num_iters):
-        v_next = A @ v
-        norm = np.linalg.norm(v_next)
+        for j in range(i):
+            v -= np.dot(Q[:, j], v) * Q[:, j]
+
+        norm = np.linalg.norm(v)
 
         if np.isclose(norm, 0):
-            raise ValueError("power iteration encountered a zero vector")
+            raise ValueError("columns are linearly dependent")
 
-        v_next = v_next / norm
+        Q[:, i] = v / norm
 
-        if np.linalg.norm(v_next - v) < tol or np.linalg.norm(v_next + v) < tol:
-            v = v_next
-            break
+    return Q
 
-        v = v_next
 
-    eigenvalue = float(v @ A @ v)
-    return eigenvalue, v
+def block_power_iteration_xxt(
+    X: np.ndarray,
+    n_components: int = 2,
+    num_iters: int = 100,
+    seed: int = 0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Approximate top eigenpairs of X X^T using block power iteration.
+
+    This is adapted from the original coursework implementation, which iterates
+
+        U <- X (X^T U)
+
+    and re-orthonormalizes the columns after each iteration.
+    """
+    X = np.asarray(X, dtype=float)
+    n = X.shape[0]
+
+    rng = np.random.default_rng(seed)
+    U = rng.normal(size=(n, n_components))
+    U = gram_schmidt(U)
+
+    for _ in range(num_iters):
+        U = X @ (X.T @ U)
+        U = gram_schmidt(U)
+
+    eigenvalues = np.array(
+        [
+            float(U[:, i] @ ((X @ X.T) @ U[:, i]) / (U[:, i] @ U[:, i]))
+            for i in range(n_components)
+        ]
+    )
+
+    return eigenvalues, U
+
+
+# backwards-compatible alias for README/tests
+qr_decomposition = householder_qr

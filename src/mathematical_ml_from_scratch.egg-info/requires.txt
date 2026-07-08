@@ -1,6 +1,9 @@
 numpy
+scipy
 matplotlib
 scikit-learn
+qpsolvers
+quadprog
 
 [dev]
 pytest

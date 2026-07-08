@@ -1,110 +1,73 @@
 import numpy as np
+from qpsolvers import solve_qp
 
 
-class LogisticRegressionGD:
-    """Binary logistic regression trained with gradient descent."""
+class HardMarginSVM:
+    """Hard-margin linear SVM solved through the dual quadratic program.
 
-    def __init__(
-        self,
-        learning_rate: float = 0.1,
-        num_iters: int = 1000,
-        l2: float = 0.0,
-    ):
-        self.learning_rate = learning_rate
-        self.num_iters = num_iters
-        self.l2 = l2
+    Adapted from the original coursework implementation. The model solves
+
+        min 1/2 alpha^T Q alpha - 1^T alpha
+        s.t. alpha >= 0, y^T alpha = 0
+
+    where Q_ij = y_i y_j <x_i, x_j>.
+    """
+
+    def __init__(self, support_tol: float = 1e-7, solver: str = "quadprog"):
+        self.support_tol = support_tol
+        self.solver = solver
+        self.alpha_: np.ndarray | None = None
         self.weights_: np.ndarray | None = None
-        self.bias_: float = 0.0
-        self.loss_history_: list[float] = []
+        self.bias_: float | None = None
+        self.support_indices_: np.ndarray | None = None
 
-    @staticmethod
-    def _sigmoid(z: np.ndarray) -> np.ndarray:
-        z = np.clip(z, -500, 500)
-        return 1 / (1 + np.exp(-z))
-
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "LogisticRegressionGD":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> "HardMarginSVM":
         X = np.asarray(X, dtype=float)
         y = np.asarray(y, dtype=float)
 
-        n_samples, n_features = X.shape
-        self.weights_ = np.zeros(n_features)
-        self.bias_ = 0.0
-        self.loss_history_ = []
+        if not np.all(np.isin(y, [-1, 1])):
+            raise ValueError("HardMarginSVM expects labels in {-1, 1}")
 
-        for _ in range(self.num_iters):
-            logits = X @ self.weights_ + self.bias_
-            probs = self._sigmoid(logits)
+        n_samples = X.shape[0]
 
-            eps = 1e-12
-            loss = -np.mean(
-                y * np.log(probs + eps) + (1 - y) * np.log(1 - probs + eps)
-            )
-            loss += 0.5 * self.l2 * np.sum(self.weights_**2)
-            self.loss_history_.append(float(loss))
+        Q = (y[:, None] * y[None, :]) * (X @ X.T)
 
-            error = probs - y
-            grad_w = (X.T @ error) / n_samples + self.l2 * self.weights_
-            grad_b = float(np.mean(error))
+        P = Q + 1e-8 * np.eye(n_samples)
+        q = -np.ones(n_samples)
 
-            self.weights_ -= self.learning_rate * grad_w
-            self.bias_ -= self.learning_rate * grad_b
+        G = -np.eye(n_samples)
+        h = np.zeros(n_samples)
 
-        return self
+        A = y.reshape(1, -1)
+        b = np.array([0.0])
 
-    def predict_proba(self, X: np.ndarray) -> np.ndarray:
-        if self.weights_ is None:
-            raise ValueError("model must be fit before predict_proba")
+        alpha = solve_qp(P, q, G, h, A, b, solver=self.solver)
 
-        X = np.asarray(X, dtype=float)
-        return self._sigmoid(X @ self.weights_ + self.bias_)
+        if alpha is None:
+            raise RuntimeError("quadratic program did not return a solution")
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        return (self.predict_proba(X) >= 0.5).astype(int)
+        support_indices = np.where(alpha > self.support_tol)[0]
+        weights = np.sum((alpha * y)[:, None] * X, axis=0)
 
+        bias_candidates = []
+        for i in support_indices:
+            bias_candidates.append(y[i] - weights @ X[i])
 
-class LinearSVM:
-    """Linear SVM trained with subgradient descent on hinge loss."""
+        bias = float(np.mean(bias_candidates))
 
-    def __init__(
-        self,
-        learning_rate: float = 0.01,
-        num_iters: int = 1000,
-        C: float = 1.0,
-    ):
-        self.learning_rate = learning_rate
-        self.num_iters = num_iters
-        self.C = C
-        self.weights_: np.ndarray | None = None
-        self.bias_: float = 0.0
-
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "LinearSVM":
-        X = np.asarray(X, dtype=float)
-        y = np.asarray(y)
-
-        y_signed = np.where(y <= 0, -1, 1)
-
-        n_samples, n_features = X.shape
-        self.weights_ = np.zeros(n_features)
-        self.bias_ = 0.0
-
-        for _ in range(self.num_iters):
-            margins = y_signed * (X @ self.weights_ + self.bias_)
-            misclassified = margins < 1
-
-            grad_w = self.weights_ - self.C * (X[misclassified].T @ y_signed[misclassified])
-            grad_b = -self.C * np.sum(y_signed[misclassified])
-
-            self.weights_ -= self.learning_rate * grad_w / n_samples
-            self.bias_ -= self.learning_rate * grad_b / n_samples
+        self.alpha_ = alpha
+        self.weights_ = weights
+        self.bias_ = bias
+        self.support_indices_ = support_indices
 
         return self
 
     def decision_function(self, X: np.ndarray) -> np.ndarray:
-        if self.weights_ is None:
-            raise ValueError("model must be fit before decision_function")
+        if self.weights_ is None or self.bias_ is None:
+            raise ValueError("SVM must be fit before prediction")
 
         X = np.asarray(X, dtype=float)
         return X @ self.weights_ + self.bias_
 
     def predict(self, X: np.ndarray) -> np.ndarray:
-        return np.where(self.decision_function(X) >= 0, 1, -1)
+        return np.sign(self.decision_function(X))

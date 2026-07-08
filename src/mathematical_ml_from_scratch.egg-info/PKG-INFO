@@ -1,11 +1,14 @@
 Metadata-Version: 2.4
 Name: mathematical-ml-from-scratch
 Version: 0.1.0
-Summary: Numerical methods and mathematical machine learning algorithms implemented from scratch in Python/NumPy.
+Summary: Computational mathematics and mathematical machine learning implementations adapted from coursework.
 Requires-Python: >=3.10
 Requires-Dist: numpy
+Requires-Dist: scipy
 Requires-Dist: matplotlib
 Requires-Dist: scikit-learn
+Requires-Dist: qpsolvers
+Requires-Dist: quadprog
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
 Requires-Dist: ruff; extra == "dev"

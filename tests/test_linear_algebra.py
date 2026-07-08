@@ -1,19 +1,31 @@
 import numpy as np
 
-from mathematical_ml.linear_algebra import power_iteration, qr_decomposition
+from mathematical_ml.linear_algebra import (
+    block_power_iteration_xxt,
+    householder_qr,
+)
 
 
-def test_qr_decomposition_reconstructs_matrix():
-    A = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 7.0]])
-    Q, R = qr_decomposition(A)
+def test_householder_qr_reconstructs_matrix():
+    rng = np.random.default_rng(0)
+    A = rng.normal(size=(8, 4))
+
+    Q, R = householder_qr(A)
 
     assert np.allclose(Q @ R, A)
-    assert np.allclose(Q.T @ Q, np.eye(2))
+    assert np.allclose(Q.T @ Q, np.eye(8))
 
 
-def test_power_iteration_dominant_eigenvalue():
-    A = np.array([[3.0, 0.0], [0.0, 1.0]])
-    eigenvalue, eigenvector = power_iteration(A)
+def test_block_power_iteration_shapes():
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(20, 5))
 
-    assert np.isclose(eigenvalue, 3.0, atol=1e-3)
-    assert np.isclose(np.linalg.norm(eigenvector), 1.0)
+    eigenvalues, eigenvectors = block_power_iteration_xxt(
+        X,
+        n_components=2,
+        num_iters=20,
+    )
+
+    assert eigenvalues.shape == (2,)
+    assert eigenvectors.shape == (20, 2)
+    assert np.allclose(eigenvectors.T @ eigenvectors, np.eye(2), atol=1e-6)
