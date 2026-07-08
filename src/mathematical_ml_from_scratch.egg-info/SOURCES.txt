@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+src/mathematical_ml/__init__.py
+src/mathematical_ml/classification.py
+src/mathematical_ml/clustering.py
+src/mathematical_ml/decomposition.py
+src/mathematical_ml/kernels.py
+src/mathematical_ml/linear_algebra.py
+src/mathematical_ml_from_scratch.egg-info/PKG-INFO
+src/mathematical_ml_from_scratch.egg-info/SOURCES.txt
+src/mathematical_ml_from_scratch.egg-info/dependency_links.txt
+src/mathematical_ml_from_scratch.egg-info/requires.txt
+src/mathematical_ml_from_scratch.egg-info/top_level.txt
+tests/test_classification.py
+tests/test_clustering.py
+tests/test_decomposition.py
+tests/test_linear_algebra.py
