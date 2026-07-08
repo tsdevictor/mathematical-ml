@@ -1,73 +1,72 @@
-# Mathematical ML from Scratch
+# Mathematical ML
 
-Computational mathematics and mathematical machine learning implementations adapted from coursework and reorganized into a reusable Python package.
+Machine learning and numerical linear algebra implementations from first principles.
 
-The original coursework files are preserved in `archive/coursework/`; the cleaned implementations in `src/mathematical_ml/` expose the strongest algorithms through a smaller, more readable API.
+This repository consolidates my computational mathematics work and my original MNIST neural-network project into one public package. The original standalone MNIST repository has been merged into this repo under `archive/mnist-original/`, and the original source scripts have been promoted into `src/mathematical_ml/mnist/`.
 
-## Clean implementations
+## Implementations
 
 | Area | Implementation |
 |---|---|
-| Dimensionality reduction | PCA via eigendecomposition of `X.T @ X` |
-| Numerical linear algebra | Householder QR, Gram-Schmidt, block power iteration for `X X.T` |
-| Classification | hard-margin linear SVM via the dual quadratic program |
-| Spectral methods | kNN graph construction, graph Laplacian, spectral embedding, cluster homogeneity |
-| Kernels | linear, polynomial, and RBF kernels |
+| Dimensionality reduction | PCA via eigendecomposition of centered data |
+| Numerical linear algebra | Householder QR, modified Gram-Schmidt, block power iteration |
+| Classification | Hard-margin linear SVM through the dual quadratic program |
+| Spectral methods | kNN graph construction, graph Laplacian, spectral embedding |
+| Kernels | Linear, polynomial, and RBF kernels |
+| MNIST neural network | Original feedforward / training / evaluation scripts merged from the standalone MNIST repo |
 
-## Archived coursework
+## Repository Structure
 
-The original coursework files are preserved under `archive/coursework/`.
+    src/mathematical_ml/
+      decomposition.py      # PCA
+      linear_algebra.py     # QR, Gram-Schmidt, block power iteration
+      classification.py     # hard-margin SVM dual
+      clustering.py         # graph Laplacian spectral clustering utilities
+      kernels.py            # kernel functions
+      mnist/
+        feedforward.py      # original MNIST feedforward script
+        train.py            # original MNIST training / weight script
+        evaluate.py         # original MNIST evaluation utilities
 
-| Topic | Source |
-|---|---|
-| PCA / low-rank approximation | `hw2`, `hw3`, `hw4`, `hw14` |
-| Householder QR | `hw5` |
-| Eigenvalue methods / block power iteration | `hw5`, `hw6` |
-| Hard-margin SVM | `hw12` |
-| Spectral clustering / graph Laplacians | `hw13` |
-| Logistic regression experiments | `hw13` |
-| Autoencoders on MNIST | `hw14` |
+    tests/
+      test_decomposition.py
+      test_linear_algebra.py
+      test_classification.py
+      test_clustering.py
+      test_mnist_original.py
 
-## Repository structure
+    archive/
+      mnist-original/       # complete original standalone MNIST repo after merge
+      coursework/           # original computational math coursework archive, if retained
 
-```text
-src/mathematical_ml/
-  decomposition.py      # PCA
-  linear_algebra.py     # Householder QR, Gram-Schmidt, block power iteration
-  classification.py     # hard-margin SVM dual
-  clustering.py         # graph Laplacian spectral clustering utilities
-  kernels.py            # kernel functions
-
-tests/                  # numerical correctness checks
-examples/               # reproducible demos
-figures/                # generated outputs
-archive/coursework/     # original coursework files
-```
+    docs/
+      mnist-merge.md
 
 ## Quickstart
 
-```bash
-python -m pip install -e ".[dev]"
-pytest
-python examples/run_digits_pca.py
-```
+    python -m venv .venv
+    source .venv/bin/activate
+    python -m pip install -e ".[dev]"
+    pytest
 
-## Example output
+## Run the original MNIST feedforward script
 
-The PCA demo projects handwritten digit data into two dimensions and saves the result to:
+Example smoke test using a tiny weight file:
 
-```text
-figures/digits_pca.png
-```
+    printf "1 1\n1\n" > /tmp/weights.txt
+    python src/mathematical_ml/mnist/feedforward.py /tmp/weights.txt T1 1 2
 
-## Design goals
+Expected output:
 
-- Preserve the original mathematical ideas from coursework
-- Refactor the strongest implementations into reusable modules
-- Keep the linear algebra and optimization structure visible
-- Add tests for numerical correctness
-- Avoid presenting raw homework folders as the main public interface
+    [3.0]
+
+## Design Goals
+
+- Keep the mathematical structure visible
+- Preserve my original MNIST implementation rather than replacing it with a rewritten version
+- Refactor the public surface enough that recruiters can understand the repo
+- Keep raw historical files available under `archive/` while exposing the active code through `src/`
 
 ## Notes
 
-Some experiments use standard scientific Python tools such as SciPy, scikit-learn, and qpsolvers for numerical routines, graph construction, optimization, or comparison. The cleaned package focuses on making the mathematical pipeline explicit rather than replacing every optimized numerical backend.
+The MNIST files under `src/mathematical_ml/mnist/` are intentionally kept close to the original standalone project. The goal of this merge is preservation and consolidation, not a rewrite.
