@@ -91,7 +91,6 @@ The tests cover the active package surface, including PCA shape/reconstruction b
 - Expose active implementations through a clean `src/` package.
 - Preserve historical coursework and early projects without making them the public surface.
 - Keep tests lightweight enough to run quickly in CI.
-- Make the repository readable for recruiters without hiding the original learning process.
 
 ## Notes
 
